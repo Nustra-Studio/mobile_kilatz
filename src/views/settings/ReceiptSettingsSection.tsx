@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  Switch,
-  TouchableOpacity,
-  StyleSheet,
-  TextInput,
-  Alert,
   ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { ReceiptSettings, ReceiptSettingsStorage, DEFAULT_RECEIPT_SETTINGS } from '../../utils/receiptSettings';
+import { PrinterController } from '../../controllers/PrinterController';
+import { DEFAULT_RECEIPT_SETTINGS, ReceiptSettings, ReceiptSettingsStorage } from '../../utils/receiptSettings';
 
 export const ReceiptSettingsSection = () => {
   const [settings, setSettings] = useState<ReceiptSettings>(DEFAULT_RECEIPT_SETTINGS);
@@ -43,7 +43,64 @@ export const ReceiptSettingsSection = () => {
       setIsSaving(false);
     }
   };
+  const handleScanPrinter = async () => {
+    try {
+      Alert.alert('Mencari...', 'Sedang memindai printer Bluetooth terdekat.');
+      const devices = await PrinterController.scanDevices();
 
+      if (devices.length === 0) {
+        Alert.alert('Info', 'Tidak menemukan printer bluetooth di sekitar Anda.');
+        return;
+      }
+
+      // Untuk saat ini, kita pilih perangkat pertama yang terdeteksi
+      // Idealnya, Anda bisa membuat Modal popup agar kasir bisa memilih dari daftar 'devices'
+      const selectedDevice = devices[0];
+
+      update('printer_name', selectedDevice.name);
+      update('printer_mac', selectedDevice.mac);
+
+      Alert.alert('Sukses', `Berhasil mendeteksi dan memilih printer: ${selectedDevice.name}`);
+    } catch (error) {
+      Alert.alert('Error', 'Terjadi kesalahan saat memindai bluetooth.');
+      console.error(error);
+    }
+  };
+  const handleTestPrint = async () => {
+    if (!settings.printer_mac) {
+      Alert.alert('Info', 'Silakan cari dan hubungkan printer terlebih dahulu sebelum test print.');
+      return;
+    }
+
+    Alert.alert('Test Print', 'Sedang mengirim data ke printer...');
+
+    // Kita menggunakan 'as any' agar tidak error dengan struktur lengkap CartItem di app Anda
+    const success = await PrinterController.printReceipt({
+      invoiceNumber: `TEST-${Math.floor(Math.random() * 10000)}`,
+      items: [
+        {
+          id: 'test-1',
+          name: 'Menu Test Print 1',
+          price: 15000,
+          quantity: 2,
+        } as any,
+        {
+          id: 'test-2',
+          name: 'Menu Test Print 2',
+          price: 20000,
+          quantity: 1,
+        } as any,
+      ],
+      total: 50000,
+      paymentMethod: 'Tunai',
+      cashReceived: 50000,
+      cashierName: 'Admin (Test)',
+    });
+
+    if (!success) {
+      Alert.alert('Gagal', 'Tidak dapat mencetak struk. Pastikan printer menyala dan terhubung.');
+    }
+  };
   if (isLoading) {
     return (
       <View style={styles.loadingBox}>
@@ -75,24 +132,24 @@ export const ReceiptSettingsSection = () => {
                 <Text style={styles.deviceNone}>Belum ada printer terhubung</Text>
               )}
             </View>
-            <TouchableOpacity style={styles.scanMiniBtn} onPress={() => {
-                // Simulate connect
-                update('printer_name', 'MTP-II');
-                update('printer_mac', '00:11:22:33:44:55');
-            }}>
+            <TouchableOpacity style={styles.scanMiniBtn} onPress={handleScanPrinter}>
               <Text style={styles.scanMiniBtnText}>{settings.printer_name ? 'Ganti' : 'Cari'}</Text>
             </TouchableOpacity>
           </View>
-
+          {settings.printer_name && (
+            <TouchableOpacity style={styles.testPrintBtn} onPress={handleTestPrint}>
+              <Text style={styles.testPrintBtnText}>🖨️ Test Print Struk</Text>
+            </TouchableOpacity>
+          )}
           <Text style={styles.deviceLabel}>Ukuran Kertas (Thermal)</Text>
           <View style={styles.paperOptions}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.paperOpt, settings.paper_size === '58mm' && styles.paperOptActive]}
               onPress={() => update('paper_size', '58mm')}
             >
               <Text style={[styles.paperOptText, settings.paper_size === '58mm' && styles.paperOptTextActive]}>58 mm</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.paperOpt, settings.paper_size === '80mm' && styles.paperOptActive]}
               onPress={() => update('paper_size', '80mm')}
             >
@@ -414,4 +471,19 @@ const styles = StyleSheet.create({
   paperOptActive: { borderColor: BRAND, backgroundColor: 'rgba(254,180,0,0.1)' },
   paperOptText: { color: 'rgba(255,255,255,0.5)', fontWeight: '600', fontSize: 13 },
   paperOptTextActive: { color: BRAND },
+  testPrintBtn: {
+    backgroundColor: 'rgba(254,180,0,0.1)',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(254,180,0,0.4)',
+    borderStyle: 'dashed', // Memberikan efek garis putus-putus
+  },
+  testPrintBtnText: {
+    color: BRAND,
+    fontWeight: '700',
+    fontSize: 13,
+  },
 });
