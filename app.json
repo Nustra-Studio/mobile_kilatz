@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "kilatz-mobile",
-    "slug": "kilatz-mobile",
+    "slug": "kilatz",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -9,9 +9,15 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nustra.kilatzmobile",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Aplikasi membutuhkan Bluetooth untuk menyambungkan dan mencetak struk ke printer termal.",
+        "NSBluetoothPeripheralUsageDescription": "Aplikasi membutuhkan Bluetooth untuk menyambungkan dan mencetak struk ke printer termal."
+      }
     },
     "android": {
+      "package": "com.nustra.kilatzmobile",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -19,7 +25,14 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "output": "static",
@@ -38,11 +51,29 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      "expo-sqlite",
+      "@react-native-vector-icons/fontawesome6",
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "34433e62-463c-477d-8466-1893df60647b"
+      }
+    },
+    "owner": "nustrastudio"
   }
 }

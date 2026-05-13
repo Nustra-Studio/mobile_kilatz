@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="100%" height="100%">
+  <defs>
+    <style>
+      .warna-logo { fill: #F8AF00; } /* Warna Kuning-Oranye */
+      .font-logo { 
+        font-family: 'Arial Black', 'Montserrat', sans-serif; 
+        font-size: 135px; 
+        font-weight: 900; 
+        letter-spacing: 5px; 
+      }
+    </style>
+  </defs>
+
+  <path d="M 120,120 C 145,20 215,20 240,120" fill="none" stroke="#F8AF00" stroke-width="12" stroke-linecap="round"/>
+
+  <path d="M 50,120 L 310,120 L 265,260 C 260,275 245,285 225,285 L 135,285 C 115,285 100,275 95,260 Z" class="warna-logo" />
+
+  <path d="M 200,110 L 140,190 L 180,190 L 140,280 L 230,170 L 180,170 Z" fill="#FFFFFF" />
+
+  <text x="360" y="260" class="warna-logo font-logo">KILATZ</text>
+</svg>
