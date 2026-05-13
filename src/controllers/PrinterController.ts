@@ -1,14 +1,14 @@
-import { BLEPrinter } from 'react-native-thermal-receipt-printer-image-qr';
+import { Alert, PermissionsAndroid, Permission, Platform } from 'react-native';
+import ThermalPrinter from 'react-native-thermal-printer';
 import { CartItem } from '../types';
 import { ReceiptSettingsStorage } from '../utils/receiptSettings';
 
-// Utility for formatting text to specific width
+// Helper functions for receipt formatting
 const formatLine = (left: string, right: string, width: number) => {
     const spaceLength = width - left.length - right.length;
     if (spaceLength > 0) {
         return left + ' '.repeat(spaceLength) + right;
     }
-    // If it exceeds, just truncate left or add a space
     return left.substring(0, width - right.length - 1) + ' ' + right;
 };
 
@@ -19,48 +19,124 @@ const centerText = (text: string, width: number) => {
 };
 
 const formatRp = (n: number) =>
-    'Rp ' + n.toLocaleString('id-ID', { minimumFractionDigits: 0 });
+    'Rp ' + n.toLocaleString('id-ID', { minimumFractionDigits: 0 }).replace(/,/g, '.');
+
+// Define printer device type
+export interface PrinterDevice {
+    name: string;
+    mac: string;
+}
 
 export const PrinterController = {
     /**
-     * Scan for paired Bluetooth devices using Native Module
+     * Request necessary permissions for Bluetooth on Android
      */
-    async scanDevices(): Promise<Array<{ name: string; mac: string; isPaired: boolean }>> {
-        console.log('[Printer] Scanning for Bluetooth printers...');
+    async requestPermissions(): Promise<boolean> {
+        if (Platform.OS === 'android') {
+            try {
+                let permissions: string[] = [];
+
+                if (Platform.Version >= 31) { // Android 12+
+                    permissions = [
+                        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+                        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+                    ];
+                } else if (Platform.Version >= 23) { // Android 6-11
+                    permissions = [PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION];
+                }
+
+                if (permissions.length > 0) {
+                    const granted = await PermissionsAndroid.requestMultiple(permissions as Permission[]);
+                    const allGranted = Object.values(granted).every(
+                        (res) => res === PermissionsAndroid.RESULTS.GRANTED
+                    );
+
+                    if (!allGranted) {
+                        console.warn('[Printer] Bluetooth permissions denied');
+                        Alert.alert(
+                            'Izin Diperlukan',
+                            'Aplikasi memerlukan izin Bluetooth untuk mencetak struk.',
+                            [{ text: 'OK' }]
+                        );
+                        return false;
+                    }
+                }
+                return true;
+            } catch (err) {
+                console.error('[Printer] Permission error:', err);
+                return false;
+            }
+        }
+        return true;
+    },
+
+    /**
+     * Get list of paired Bluetooth devices
+     */
+    async getPairedDevices(): Promise<PrinterDevice[]> {
+        console.log('[Printer] Getting paired devices...');
+
+        const hasPermission = await this.requestPermissions();
+        if (!hasPermission) return [];
+
         try {
-            await BLEPrinter.init();
-            const devices = await BLEPrinter.getDeviceList();
+            const devices = await ThermalPrinter.getBluetoothDeviceList();
 
-            // Expected IBLEPrinter[] = { device_name: string, inner_mac_address: string }[]
-            return devices.map(d => ({
-                name: d.device_name || 'Unknown',
-                mac: d.inner_mac_address,
-                isPaired: true // Assuming they are paired in OS settings
-            })).filter(d => d.mac && d.name !== 'Unknown');
+            const pairedDevices = devices.map((device: any) => ({
+                name: device.deviceName || 'Unknown Device',
+                mac: device.macAddress || device.deviceAddress, // Compatibility
+            }));
 
+            console.log(`[Printer] Found ${pairedDevices.length} paired device(s):`, pairedDevices);
+
+            if (pairedDevices.length === 0) {
+                Alert.alert(
+                    'Tidak Ada Perangkat',
+                    'Tidak ditemukan perangkat Bluetooth yang ter-pair. Silakan hubungkan di Pengaturan Android.',
+                    [{ text: 'OK' }]
+                );
+            }
+
+            return pairedDevices;
         } catch (error) {
-            console.error('[Printer] Scan Failed:', error);
+            console.error('[Printer] Failed to get devices:', error);
+            Alert.alert('Error', 'Gagal mendapatkan daftar perangkat Bluetooth.');
             return [];
         }
     },
 
     /**
-     * Connect to a Bluetooth printer by MAC address
+     * Get current printer from settings
      */
-    async connect(mac: string): Promise<boolean> {
-        console.log(`[Printer] Connecting to MAC: ${mac}...`);
+    async getCurrentPrinter(): Promise<PrinterDevice | null> {
+        const settings = await ReceiptSettingsStorage.get();
+        if (settings.printer_mac) {
+            return {
+                name: settings.printer_name || 'Printer',
+                mac: settings.printer_mac,
+            };
+        }
+        return null;
+    },
+
+    /**
+     * Save selected printer to settings
+     */
+    async savePrinterToSettings(device: PrinterDevice): Promise<boolean> {
         try {
-            await BLEPrinter.connectPrinter(mac);
-            console.log(`[Printer] Connected to ${mac} successfully.`);
+            const settings = await ReceiptSettingsStorage.get();
+            settings.printer_mac = device.mac;
+            settings.printer_name = device.name;
+            await ReceiptSettingsStorage.save(settings);
             return true;
         } catch (error) {
-            console.error(`[Printer] Connect Failed for ${mac}:`, error);
+            console.error('[Printer] Failed to save printer:', error);
             return false;
         }
     },
 
     /**
-     * Print the receipt based on user settings and transaction data
+     * Main print receipt function
      */
     async printReceipt(params: {
         invoiceNumber: string;
@@ -72,69 +148,47 @@ export const PrinterController = {
     }): Promise<boolean> {
         try {
             const settings = await ReceiptSettingsStorage.get();
+            if (!settings.printer_enabled) return false;
 
-            if (!settings.printer_enabled) {
-                console.log('[Printer] Printer is disabled in settings. Skipping print.');
+            const printer = await this.getCurrentPrinter();
+            if (!printer || !printer.mac) {
+                Alert.alert('Printer Belum Dipilih', 'Silakan pilih printer di pengaturan.');
                 return false;
             }
 
-            // Connect to printer if mac is available
-            if (!settings.printer_mac) {
-                console.warn('[Printer] No printer MAC address configured!');
-                return false;
-            }
+            const hasPermission = await this.requestPermissions();
+            if (!hasPermission) return false;
 
-            // In real app: await BluetoothEscposPrinter.connect(settings.printer_mac);
-            await this.connect(settings.printer_mac);
-
-            // Paper width chars: 58mm usually 32 chars, 80mm usually 48 chars
+            // === Build receipt content ===
             const MAX_CHARS = settings.paper_size === '80mm' ? 48 : 32;
             const dashes = '-'.repeat(MAX_CHARS);
-
             const taxAmount = settings.show_tax ? params.total * (settings.tax_rate / 100) : 0;
             const grandTotal = params.total + taxAmount;
             const change = params.cashReceived ? params.cashReceived - grandTotal : 0;
-
             const now = new Date();
             const dateStr = now.toLocaleDateString('id-ID') + ' ' + now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-            // --- BUILD RECEIPT STRING ---
             let receipt = '\n';
-
-            // 1. Header (Center)
             receipt += centerText(settings.business_name, MAX_CHARS) + '\n';
-            if (settings.address) {
-                // simple split if too long
-                receipt += centerText(settings.address.substring(0, MAX_CHARS), MAX_CHARS) + '\n';
-            }
-            if (settings.phone) {
-                receipt += centerText(settings.phone, MAX_CHARS) + '\n';
-            }
+            if (settings.address) receipt += centerText(settings.address.substring(0, MAX_CHARS), MAX_CHARS) + '\n';
+            if (settings.phone) receipt += centerText(settings.phone, MAX_CHARS) + '\n';
             receipt += dashes + '\n';
 
-            // 2. Transaction Info
             receipt += formatLine('No:', params.invoiceNumber, MAX_CHARS) + '\n';
             receipt += formatLine('Tgl:', dateStr, MAX_CHARS) + '\n';
-            if (params.cashierName) {
-                receipt += formatLine('Kasir:', params.cashierName, MAX_CHARS) + '\n';
-            }
+            if (params.cashierName) receipt += formatLine('Kasir:', params.cashierName, MAX_CHARS) + '\n';
             receipt += dashes + '\n';
 
-            // 3. Items
             params.items.forEach((item) => {
-                // Item Name on one line if it's long, or just let it wrap
                 receipt += item.name.substring(0, MAX_CHARS) + '\n';
                 const qtyStr = `  ${item.quantity} x ${formatRp(item.price)}`;
                 const subtotalStr = formatRp(item.price * item.quantity);
                 receipt += formatLine(qtyStr, subtotalStr, MAX_CHARS) + '\n';
             });
-            receipt += dashes + '\n';
 
-            // 4. Totals
+            receipt += dashes + '\n';
             receipt += formatLine('Subtotal', formatRp(params.total), MAX_CHARS) + '\n';
-            if (settings.show_tax) {
-                receipt += formatLine(`Pajak (${settings.tax_rate}%)`, formatRp(taxAmount), MAX_CHARS) + '\n';
-            }
+            if (settings.show_tax) receipt += formatLine(`Pajak (${settings.tax_rate}%)`, formatRp(taxAmount), MAX_CHARS) + '\n';
             receipt += formatLine('TOTAL', formatRp(grandTotal), MAX_CHARS) + '\n';
             receipt += formatLine('Bayar', params.paymentMethod, MAX_CHARS) + '\n';
 
@@ -142,46 +196,32 @@ export const PrinterController = {
                 receipt += formatLine('Tunai', formatRp(params.cashReceived), MAX_CHARS) + '\n';
                 receipt += formatLine('Kembali', formatRp(change), MAX_CHARS) + '\n';
             }
+
             receipt += dashes + '\n';
-
-            // 5. Footer & Tagline
-            if (settings.tagline) {
-                receipt += centerText(settings.tagline.substring(0, MAX_CHARS), MAX_CHARS) + '\n';
-            }
-
-            // 6. WiFi
+            if (settings.tagline) receipt += centerText(settings.tagline.substring(0, MAX_CHARS), MAX_CHARS) + '\n';
             if (settings.show_wifi && settings.wifi_ssid) {
-                receipt += '\n';
-                receipt += centerText('--- WiFi Info ---', MAX_CHARS) + '\n';
+                receipt += '\n' + centerText('--- WiFi Info ---', MAX_CHARS) + '\n';
                 receipt += centerText(`SSID: ${settings.wifi_ssid}`, MAX_CHARS) + '\n';
-                if (settings.wifi_password) {
-                    receipt += centerText(`Pass: ${settings.wifi_password}`, MAX_CHARS) + '\n';
-                }
+                if (settings.wifi_password) receipt += centerText(`Pass: ${settings.wifi_password}`, MAX_CHARS) + '\n';
             }
+            if (settings.footer_note) receipt += '\n' + centerText(settings.footer_note.substring(0, MAX_CHARS), MAX_CHARS) + '\n';
+            receipt += '\n\n\n';
 
-            if (settings.footer_note) {
-                receipt += '\n' + centerText(settings.footer_note.substring(0, MAX_CHARS), MAX_CHARS) + '\n';
-            }
-
-            receipt += '\n\n\n'; // Feed lines for tearing
-
-            // --- END BUILD ---
-
-            console.log('=== SENDING TO NATIVE PRINTER ===');
-            console.log(receipt);
-
-            // Execute actual print command
-            BLEPrinter.printBill(receipt, {
-                beep: false,
-                cut: false,
-                tailingLine: true
+            // Send to printer
+            await ThermalPrinter.printBluetooth({
+                payload: receipt,
+                macAddress: printer.mac,
+                printerNbrCharactersPerLine: MAX_CHARS,
+                autoCut: true,
             });
 
+            console.log('[Printer] Print success');
             return true;
 
         } catch (error) {
             console.error('[Printer] Print failed:', error);
+            Alert.alert('Gagal Cetak', (error as any)?.message || 'Periksa koneksi printer.');
             return false;
         }
-    }
+    },
 };

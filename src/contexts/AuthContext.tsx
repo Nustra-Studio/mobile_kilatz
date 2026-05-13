@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 interface Employee {
     id: number;
@@ -10,6 +10,7 @@ interface Employee {
 
 interface AuthContextType {
     isAuthenticated: boolean;
+    isLoading: boolean;
     tenantId: number | null;
     outletId: number | null;
     employee: Employee | null;
@@ -28,6 +29,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [tenantId, setTenantId] = useState<number | null>(null);
     const [outletId, setOutletId] = useState<number | null>(null);
     const [employee, setEmployee] = useState<Employee | null>(null);
@@ -65,6 +67,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (error) {
             console.error('Error refreshing auth:', error);
             setIsAuthenticated(false);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -97,6 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         <AuthContext.Provider
             value={{
                 isAuthenticated,
+                isLoading,
                 tenantId,
                 outletId,
                 employee,

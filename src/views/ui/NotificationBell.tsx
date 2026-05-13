@@ -2,17 +2,21 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Modal, TouchableWithoutFeedback } from 'react-native';
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 
-// Mock Notification Data
-const MOCK_NOTIFICATIONS = [
-    { id: '1', title: 'New Order', message: 'Table 4 ordered 2 Nasi Goreng', time: '2m ago', read: false },
-    { id: '2', title: 'Stock Alert', message: 'Aqua 600ml is running low (5 left)', time: '15m ago', read: false },
-    { id: '3', title: 'Shift End', message: 'Cashier shift ends in 30 mins', time: '1h ago', read: true },
-    { id: '4', title: 'System', message: 'Daily backup completed successfully', time: '2h ago', read: true },
-];
+import { NotificationController, Notification } from '../../controllers/NotificationController';
 
 export const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const unreadCount = MOCK_NOTIFICATIONS.filter(n => !n.read).length;
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  React.useEffect(() => {
+    // Subscribe to controller updates
+    const unsubscribe = NotificationController.subscribe((newNotifs) => {
+      setNotifications(newNotifs);
+    });
+    return unsubscribe;
+  }, []);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <View className="relative z-50">
@@ -43,26 +47,43 @@ export const NotificationBell = () => {
                  >
                     <View className="p-4 border-b border-gray-100 flex-row justify-between items-center bg-gray-50">
                         <Text className="font-bold text-gray-900">Notifications</Text>
-                        <TouchableOpacity onPress={() => setIsOpen(false)}>
+                        <TouchableOpacity onPress={() => NotificationController.markAllAsRead()}>
                              <Text className="text-xs text-blue-600 font-semibold">Mark all read</Text>
                         </TouchableOpacity>
                     </View>
                     
                     <ScrollView className="max-h-80">
-                        {MOCK_NOTIFICATIONS.map((notif) => (
-                            <TouchableOpacity key={notif.id} className={`p-4 border-b border-gray-50 ${!notif.read ? 'bg-blue-50/30' : 'bg-white'}`}>
-                                <View className="flex-row justify-between mb-1">
-                                    <Text className="font-semibold text-gray-800 text-sm">{notif.title}</Text>
-                                    <Text className="text-xs text-gray-400">{notif.time}</Text>
-                                </View>
-                                <Text className="text-gray-500 text-xs leading-5">{notif.message}</Text>
-                            </TouchableOpacity>
-                        ))}
+                        {notifications.length === 0 ? (
+                            <View className="p-8 items-center">
+                                <Text className="text-gray-400 text-xs italic">No new notifications</Text>
+                            </View>
+                        ) : (
+                            notifications.map((notif) => (
+                                <TouchableOpacity key={notif.id} className={`p-4 border-b border-gray-50 ${!notif.read ? 'bg-blue-50/30' : 'bg-white'}`}>
+                                    <View className="flex-row justify-between mb-1">
+                                        <Text className="font-semibold text-gray-800 text-sm">{notif.title}</Text>
+                                        <Text className="text-xs text-gray-400">{notif.time}</Text>
+                                    </View>
+                                    <Text className="text-gray-500 text-xs leading-5">{notif.message}</Text>
+                                </TouchableOpacity>
+                            ))
+                        )}
                     </ScrollView>
                     
-                    <TouchableOpacity className="p-3 items-center border-t border-gray-100 bg-gray-50">
-                        <Text className="text-xs font-bold text-gray-500">View All History</Text>
-                    </TouchableOpacity>
+                    <View className="flex-row border-t border-gray-100 bg-gray-50">
+                        <TouchableOpacity 
+                            onPress={() => setIsOpen(false)}
+                            className="flex-1 p-3 items-center border-r border-gray-100"
+                        >
+                            <Text className="text-xs font-bold text-gray-500">Tutup</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            onPress={() => NotificationController.clearAll()}
+                            className="flex-1 p-3 items-center"
+                        >
+                            <Text className="text-xs font-bold text-red-500">Hapus Semua</Text>
+                        </TouchableOpacity>
+                    </View>
                  </View>
              </Modal>
          </>

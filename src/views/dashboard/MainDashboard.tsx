@@ -1,8 +1,10 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { Card } from '../ui/Card';
 import { NotificationBell } from '../ui/NotificationBell';
+import { DashboardController } from '../../controllers/DashboardController';
+import { useAuth } from '../../contexts/AuthContext';
 
 type ScreenName = 'LOGIN' | 'DASHBOARD' | 'POS' | 'PRODUCTS' | 'ROOMS' | 'REPORTS' | 'STOCK' | 'SETTINGS';
 
@@ -23,13 +25,62 @@ const SummaryCard = ({ title, value, icon, color, subtext }: { title: string, va
 );
 
 export const MainDashboard = ({ sidebar, onNavigate }: { sidebar: boolean; onNavigate: (screen: ScreenName) => void }) => {
+  const { employee } = useAuth();
+  const [summary, setSummary] = useState({
+    totalSales: 0,
+    transactionCount: 0,
+    lowStockCount: 0,
+    activeRooms: 0,
+    totalRooms: 0,
+  });
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = useCallback(async () => {
+    const [s, txs] = await Promise.all([
+      DashboardController.getSummary(),
+      DashboardController.getRecentTransactions(3)
+    ]);
+    setSummary(s);
+    setRecentTransactions(txs);
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
+
+  const formatRp = (n: number) =>
+    'Rp ' + n.toLocaleString('id-ID', { minimumFractionDigits: 0 }).replace(/,/g, '.');
+
+  const formatTime = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return '--:--';
+    }
+  };
+
   return (
-    <ScrollView className="flex-1 bg-gray-50 px-4 pb-4 pt-2">
+    <ScrollView 
+      className="flex-1 bg-gray-50 px-4 pb-4 pt-2"
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FEB400']} />
+      }
+    >
       {/* Header */}
       <View className={`flex-row justify-between transition-all items-center mb-6 mt-2 ${sidebar ? 'ps-2' : 'ps-14'}`}>
          <View>
              <Text className="text-2xl font-bold text-gray-900">Overview</Text>
-             <Text className="text-gray-500 text-sm">Welcome back, Admin</Text>
+             <Text className="text-gray-500 text-sm">Welcome back, {employee?.name || 'Admin'}</Text>
          </View>
          <NotificationBell />
       </View>
@@ -38,34 +89,34 @@ export const MainDashboard = ({ sidebar, onNavigate }: { sidebar: boolean; onNav
       <View className="flex-row mb-2">
          <SummaryCard 
             title="Total Sales" 
-            value="Rp 2.5M" 
+            value={formatRp(summary.totalSales)} 
             icon="money-bill-wave" 
             color="#16a34a" 
-            subtext="+12% vs yesterday"
+            subtext="Penjualan hari ini"
          />
          <SummaryCard 
             title="Transactions" 
-            value="45" 
+            value={String(summary.transactionCount)} 
             icon="receipt" 
             color="#2563eb" 
-            subtext="Total orders today"
+            subtext="Pesanan selesai"
          />
       </View>
 
       <View className="flex-row mb-6">
          <SummaryCard 
             title="Low Stock" 
-            value="3 Items" 
+            value={summary.lowStockCount > 0 ? `${summary.lowStockCount} Items` : 'Aman'} 
             icon="triangle-exclamation" 
-            color="#dc2626" 
-            subtext="Needs attention"
+            color={summary.lowStockCount > 0 ? "#dc2626" : "#16a34a"} 
+            subtext={summary.lowStockCount > 0 ? "Struk menipis" : "Stok tersedia"}
          />
          <SummaryCard 
             title="Active Rooms" 
-            value="2 / 5" 
+            value={`${summary.activeRooms} / ${summary.totalRooms}`} 
             icon="microphone" 
             color="#9333ea" 
-            subtext="60% occupancy"
+            subtext={`${Math.round((summary.activeRooms / (summary.totalRooms || 1)) * 100)}% occupancy`}
          />
       </View>
 
@@ -86,7 +137,7 @@ export const MainDashboard = ({ sidebar, onNavigate }: { sidebar: boolean; onNav
               <Text className="mt-2 font-medium text-gray-700">Daily Report</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            onPress={() => onNavigate('POS')} // Assuming New Member might be relevant to POS or Customers later
+            onPress={() => onNavigate('POS')}
             className="bg-white p-4 rounded-xl flex-1 border border-gray-100 items-center justify-center shadow-sm"
           >
               <FontAwesome6 name="cart-shopping" size={20} color="#4b5563" iconStyle="solid" />
@@ -97,20 +148,26 @@ export const MainDashboard = ({ sidebar, onNavigate }: { sidebar: boolean; onNav
       {/* Recent Transactions */}
       <Text className="text-lg font-bold text-gray-900 mb-3">Recent Transactions</Text>
       <View className="bg-white rounded-xl border border-gray-100 mb-6">
-          {MOCK_RECENT_TRANSACTIONS.map((tx, index) => (
-              <View key={tx.id} className={`p-4 flex-row justify-between items-center ${index !== MOCK_RECENT_TRANSACTIONS.length - 1 ? 'border-b border-gray-100' : ''}`}>
-                  <View className="flex-row items-center">
-                      <View className="w-10 h-10 bg-blue-50 rounded-full items-center justify-center mr-3">
-                          <FontAwesome6 name="receipt" size={14} color="#2563eb" iconStyle="solid" />
-                      </View>
-                      <View>
-                          <Text className="font-bold text-gray-900">{tx.customer}</Text>
-                          <Text className="text-gray-500 text-xs">{tx.items} • {tx.time}</Text>
-                      </View>
-                  </View>
-                  <Text className="font-bold text-green-600">{tx.total}</Text>
-              </View>
-          ))}
+          {recentTransactions.length === 0 ? (
+            <View className="p-8 items-center">
+              <Text className="text-gray-400">Belum ada transaksi</Text>
+            </View>
+          ) : (
+            recentTransactions.map((tx, index) => (
+                <View key={tx.id} className={`p-4 flex-row justify-between items-center ${index !== recentTransactions.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                    <View className="flex-row items-center">
+                        <View className="w-10 h-10 bg-blue-50 rounded-full items-center justify-center mr-3">
+                            <FontAwesome6 name="receipt" size={14} color="#2563eb" iconStyle="solid" />
+                        </View>
+                        <View>
+                            <Text className="font-bold text-gray-900">{tx.invoice_number}</Text>
+                            <Text className="text-gray-500 text-xs">{tx.item_count} Items • {formatTime(tx.created_at)}</Text>
+                        </View>
+                    </View>
+                    <Text className="font-bold text-green-600">{formatRp(tx.total_amount)}</Text>
+                </View>
+            ))
+          )}
           <TouchableOpacity 
             onPress={() => onNavigate('REPORTS')}
             className="p-3 bg-gray-50 border-t border-gray-100 items-center rounded-b-xl"
@@ -123,8 +180,4 @@ export const MainDashboard = ({ sidebar, onNavigate }: { sidebar: boolean; onNav
   );
 };
 
-const MOCK_RECENT_TRANSACTIONS = [
-    { id: 'TX001', customer: 'Walk-in Customer', items: '2 Items', time: '10:30 AM', total: 'Rp 45.000' },
-    { id: 'TX002', customer: 'Table 4 (VIP)', items: '5 Items', time: '11:15 AM', total: 'Rp 250.000' },
-    { id: 'TX003', customer: 'Budi Santoso', items: '1 Item', time: '11:45 AM', total: 'Rp 15.000' },
-];
+

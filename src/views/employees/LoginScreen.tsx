@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useColorScheme } from 'nativewind';
 import { useAuth } from '../../contexts/AuthContext';
 import { AuthController } from '../../controllers/AuthController';
 import { Input } from '../ui/Input';
@@ -24,6 +25,17 @@ export const LoginScreen = ({ onLogin, onRegister }: LoginScreenProps) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { setAuthData } = useAuth();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  // Dynamic Theme Colors
+  const themeBg = isDark ? '#0F0A00' : '#F9FAFB';
+  const themeCardBg = isDark ? '#1A1200' : '#FFFFFF';
+  const themeText = isDark ? '#FFFFFF' : '#111827';
+  const themeSubText = isDark ? 'rgba(255,255,255,0.4)' : '#6B7280';
+  const themeInputBg = isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6';
+  const themeInputBorder = isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB';
+  const themeFieldLabel = isDark ? 'rgba(255,255,255,0.6)' : '#4B5563';
 
   const handleSubmit = async () => {
     if (!outletId || !username || !pinCode) {
@@ -65,7 +77,7 @@ export const LoginScreen = ({ onLogin, onRegister }: LoginScreenProps) => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: themeBg }]}
     >
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -73,15 +85,14 @@ export const LoginScreen = ({ onLogin, onRegister }: LoginScreenProps) => {
       >
         {/* Top Brand Area */}
         <View style={styles.header}>
-
-          <Text style={styles.brandName}>KILATZ</Text>
-          <Text style={styles.brandSub}>Sistem Kasir Profesional</Text>
+          <Text style={[styles.brandName, { color: themeText }]}>KILATZ</Text>
+          <Text style={[styles.brandSub, { color: themeSubText }]}>Sistem Kasir Profesional</Text>
         </View>
 
         {/* Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Masuk ke Akun</Text>
-          <Text style={styles.cardSub}>Masukkan detail outlet & kredensial Anda</Text>
+        <View style={[styles.card, { backgroundColor: themeCardBg, borderColor: isDark ? 'rgba(254,180,0,0.15)' : '#E5E7EB' }]}>
+          <Text style={[styles.cardTitle, { color: themeText }]}>Masuk ke Akun</Text>
+          <Text style={[styles.cardSub, { color: themeSubText }]}>Masukkan detail outlet & kredensial Anda</Text>
 
           {/* Error */}
           {error ? (
@@ -92,45 +103,48 @@ export const LoginScreen = ({ onLogin, onRegister }: LoginScreenProps) => {
 
           {/* Outlet ID */}
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>Outlet ID</Text>
-            <View style={styles.inputRow}>
+            <Text style={[styles.fieldLabel, { color: themeFieldLabel }]}>Outlet ID</Text>
+            <View style={[styles.inputRow, { backgroundColor: themeInputBg, borderColor: themeInputBorder }]}>
               <Input
                 value={outletId}
                 onChangeText={setOutletId}
                 placeholder="Contoh: 1"
+                placeholderTextColor={isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF'}
                 keyboardType="numeric"
-                style={styles.inputFlat}
+                style={[styles.inputFlat, { color: themeText }]}
               />
             </View>
           </View>
 
           {/* Username */}
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>Username</Text>
-            <View style={styles.inputRow}>
+            <Text style={[styles.fieldLabel, { color: themeFieldLabel }]}>Username</Text>
+            <View style={[styles.inputRow, { backgroundColor: themeInputBg, borderColor: themeInputBorder }]}>
               <Input
                 value={username}
                 onChangeText={setUsername}
                 placeholder="Masukkan username"
+                placeholderTextColor={isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF'}
                 autoCapitalize="none"
                 autoCorrect={false}
-                style={styles.inputFlat}
+                style={[styles.inputFlat, { color: themeText }]}
               />
             </View>
           </View>
 
           {/* PIN */}
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>PIN Code</Text>
-            <View style={styles.inputRow}>
+            <Text style={[styles.fieldLabel, { color: themeFieldLabel }]}>PIN Code</Text>
+            <View style={[styles.inputRow, { backgroundColor: themeInputBg, borderColor: themeInputBorder }]}>
               <Input
                 value={pinCode}
                 onChangeText={setPinCode}
                 placeholder="4-6 digit PIN"
+                placeholderTextColor={isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF'}
                 secureTextEntry
                 keyboardType="numeric"
                 maxLength={6}
-                style={styles.inputFlat}
+                style={[styles.inputFlat, { color: themeText }]}
               />
             </View>
           </View>
@@ -156,9 +170,9 @@ export const LoginScreen = ({ onLogin, onRegister }: LoginScreenProps) => {
 
           {/* Divider */}
           <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>atau</Text>
-            <View style={styles.dividerLine} />
+            <View style={[styles.dividerLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB' }]} />
+            <Text style={[styles.dividerText, { color: themeSubText }]}>atau</Text>
+            <View style={[styles.dividerLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB' }]} />
           </View>
 
           {/* Register */}
@@ -170,7 +184,7 @@ export const LoginScreen = ({ onLogin, onRegister }: LoginScreenProps) => {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>v1.2.0 • Kilatz by Nustra Group</Text>
+          <Text style={[styles.footerText, { color: themeSubText }]}>v1.2.0 • Kilatz by Nustra Group</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

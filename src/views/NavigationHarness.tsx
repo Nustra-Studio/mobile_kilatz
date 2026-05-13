@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, BackHandler, Modal, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, BackHandler, Modal, useWindowDimensions, useColorScheme as RNuseColorScheme } from 'react-native';
+import { useColorScheme } from 'nativewind';
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { Button } from './ui/Button';
 
@@ -30,9 +31,12 @@ type ScreenName = 'SPLASH' | 'LOGIN' | 'REGISTER' | 'DASHBOARD' | 'POS' | 'PRODU
 const NavigationHarnessContent = () => {
   const { width } = useWindowDimensions();
   const isTablet = width > 768; // Breakpoint for Tablet/Desktop
-  const { isAuthenticated, employee, clearAuth } = useAuth();
+  const { isAuthenticated, isLoading, employee, clearAuth } = useAuth();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const [currentScreen, setCurrentScreen] = useState<ScreenName>('SPLASH');
+  const [splashAnimationDone, setSplashAnimationDone] = useState(false);
   const [screenStack, setScreenStack] = useState<ScreenName[]>([]);
   const [isSidebarOpen, setSidebarOpen] = useState(isTablet); // Default open on tablet
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -51,14 +55,22 @@ const NavigationHarnessContent = () => {
   const [currentSessionData, setCurrentSessionData] = useState<any>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'done' | 'error'>('idle');
 
+  // Handle transition after splash + auth load
+  useEffect(() => {
+    if (currentScreen === 'SPLASH' && splashAnimationDone && !isLoading) {
+      setCurrentScreen(isAuthenticated ? 'DASHBOARD' : 'LOGIN');
+    }
+  }, [splashAnimationDone, isLoading, isAuthenticated, currentScreen]);
+
   // Check authentication on mount — only after splash finishes
   useEffect(() => {
-    if (currentScreen !== 'SPLASH') {
+    // Only redirect if NOT loading and NOT on splash/auth screens
+    if (!isLoading && currentScreen !== 'SPLASH' && currentScreen !== 'LOGIN' && currentScreen !== 'REGISTER') {
       if (!isAuthenticated) {
         setCurrentScreen('LOGIN');
       }
     }
-  }, [isAuthenticated, currentScreen]);
+  }, [isAuthenticated, isLoading, currentScreen]);
 
   // Sync lifecycle — login, background, logout
   useEffect(() => {
@@ -150,13 +162,7 @@ const NavigationHarnessContent = () => {
       case 'SPLASH':
         return (
           <SplashScreen
-            onFinish={() => {
-              if (isAuthenticated) {
-                setCurrentScreen('DASHBOARD');
-              } else {
-                setCurrentScreen('LOGIN');
-              }
-            }}
+            onFinish={() => setSplashAnimationDone(true)}
           />
         );
       case 'LOGIN':
@@ -260,9 +266,10 @@ const NavigationHarnessContent = () => {
 
   // If on auth screens (splash/login/register), show without sidebar/navbar
   if (currentScreen === 'SPLASH' || currentScreen === 'LOGIN' || currentScreen === 'REGISTER') {
+    const authBg = isDark ? '#0F0A00' : '#F9FAFB';
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#0F0A00' }}>
-        <StatusBar barStyle="light-content" backgroundColor="#0F0A00" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: currentScreen === 'SPLASH' ? '#0F0A00' : authBg }}>
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={currentScreen === 'SPLASH' ? '#0F0A00' : authBg} />
         {renderContent()}
       </SafeAreaView>
     );

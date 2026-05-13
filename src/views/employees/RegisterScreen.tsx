@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useColorScheme } from 'nativewind';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import { Input } from '../ui/Input';
 
@@ -27,6 +28,18 @@ export const RegisterScreen = ({ onBack, onSuccess }: RegisterScreenProps) => {
   const [role, setRole] = useState<Role>('CASHIER');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  // Dynamic Theme Colors
+  const themeBg = isDark ? '#0F0A00' : '#F9FAFB';
+  const themeCardBg = isDark ? '#1A1200' : '#FFFFFF';
+  const themeText = isDark ? '#FFFFFF' : '#111827';
+  const themeSubText = isDark ? 'rgba(255,255,255,0.4)' : '#6B7280';
+  const themeInputBg = isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6';
+  const themeInputBorder = isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB';
+  const themeFieldLabel = isDark ? 'rgba(255,255,255,0.6)' : '#4B5563';
+  const themePillBg = isDark ? 'rgba(255,255,255,0.05)' : '#F9FAFB';
 
   const roles: { label: string; value: Role; emoji: string }[] = [
     { label: 'Kasir', value: 'CASHIER', emoji: '🧾' },
@@ -90,7 +103,7 @@ export const RegisterScreen = ({ onBack, onSuccess }: RegisterScreenProps) => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: themeBg }]}
     >
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -101,11 +114,11 @@ export const RegisterScreen = ({ onBack, onSuccess }: RegisterScreenProps) => {
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
             <Text style={styles.backIcon}>←</Text>
-            <Text style={styles.backText}>Kembali</Text>
+            <Text style={[styles.backText, { color: BRAND }]}>Kembali</Text>
           </TouchableOpacity>
 
           {/* Logo */}
-          <View style={styles.logoBox}>
+          <View style={[styles.logoBox, { backgroundColor: isDark ? 'rgba(254,180,0,0.12)' : 'rgba(254,180,0,0.08)' }]}>
             <Svg viewBox="0 0 320 320" width={60} height={60}>
               <Defs>
                 <LinearGradient id="lgBag2" x1="0" y1="0" x2="0" y2="1">
@@ -126,17 +139,17 @@ export const RegisterScreen = ({ onBack, onSuccess }: RegisterScreenProps) => {
               />
               <Path
                 d="M 178,125 L 132,200 L 162,200 L 128,285 L 208,178 L 168,178 Z"
-                fill="#FFFFFF"
+                fill={isDark ? "#FFFFFF" : "#FFF"}
               />
             </Svg>
           </View>
 
-          <Text style={styles.title}>Daftar Akun Baru</Text>
-          <Text style={styles.subtitle}>Lengkapi informasi untuk membuat akun</Text>
+          <Text style={[styles.title, { color: themeText }]}>Daftar Akun Baru</Text>
+          <Text style={[styles.subtitle, { color: themeSubText }]}>Lengkapi informasi untuk membuat akun</Text>
         </View>
 
         {/* Form Card */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: themeCardBg, borderColor: isDark ? 'rgba(254,180,0,0.15)' : '#E5E7EB' }]}>
 
           {/* Error */}
           {error ? (
@@ -147,63 +160,66 @@ export const RegisterScreen = ({ onBack, onSuccess }: RegisterScreenProps) => {
 
           {/* Outlet ID */}
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>Outlet ID</Text>
-            <View style={styles.inputRow}>
+            <Text style={[styles.fieldLabel, { color: themeFieldLabel }]}>Outlet ID</Text>
+            <View style={[styles.inputRow, { backgroundColor: themeInputBg, borderColor: themeInputBorder }]}>
               <Text style={styles.inputEmoji}>🏪</Text>
               <Input
                 value={outletId}
                 onChangeText={setOutletId}
                 placeholder="ID outlet Anda"
+                placeholderTextColor={isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF'}
                 keyboardType="numeric"
-                style={styles.inputFlat}
+                style={[styles.inputFlat, { color: themeText }]}
               />
             </View>
           </View>
 
           {/* Name */}
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>Nama Lengkap</Text>
-            <View style={styles.inputRow}>
+            <Text style={[styles.fieldLabel, { color: themeFieldLabel }]}>Nama Lengkap</Text>
+            <View style={[styles.inputRow, { backgroundColor: themeInputBg, borderColor: themeInputBorder }]}>
               <Text style={styles.inputEmoji}>📝</Text>
               <Input
                 value={name}
                 onChangeText={setName}
                 placeholder="Nama lengkap Anda"
+                placeholderTextColor={isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF'}
                 autoCapitalize="words"
-                style={styles.inputFlat}
+                style={[styles.inputFlat, { color: themeText }]}
               />
             </View>
           </View>
 
           {/* Username */}
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>Username</Text>
-            <View style={styles.inputRow}>
+            <Text style={[styles.fieldLabel, { color: themeFieldLabel }]}>Username</Text>
+            <View style={[styles.inputRow, { backgroundColor: themeInputBg, borderColor: themeInputBorder }]}>
               <Text style={styles.inputEmoji}>👤</Text>
               <Input
                 value={username}
                 onChangeText={(t) => setUsername(t.toLowerCase())}
                 placeholder="huruf_kecil_dan_angka"
+                placeholderTextColor={isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF'}
                 autoCapitalize="none"
                 autoCorrect={false}
-                style={styles.inputFlat}
+                style={[styles.inputFlat, { color: themeText }]}
               />
             </View>
           </View>
 
           {/* Role Selector */}
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>Role / Jabatan</Text>
+            <Text style={[styles.fieldLabel, { color: themeFieldLabel }]}>Role / Jabatan</Text>
             <View style={styles.roleRow}>
               {roles.map((r) => (
                 <TouchableOpacity
                   key={r.value}
-                  style={[styles.rolePill, role === r.value && styles.rolePillActive]}
+                  style={[styles.rolePill, { backgroundColor: themePillBg, borderColor: themeInputBorder }, role === r.value && styles.rolePillActive]}
                   onPress={() => setRole(r.value)}
                   activeOpacity={0.8}
                 >
                   <Text style={styles.roleEmoji}>{r.emoji}</Text>
-                  <Text style={[styles.roleLabel, role === r.value && styles.roleLabelActive]}>
+                  <Text style={[styles.roleLabel, { color: themeSubText }, role === r.value && styles.roleLabelActive]}>
                     {r.label}
                   </Text>
                 </TouchableOpacity>
@@ -213,26 +229,28 @@ export const RegisterScreen = ({ onBack, onSuccess }: RegisterScreenProps) => {
 
           {/* PIN */}
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>PIN Code</Text>
-            <View style={styles.inputRow}>
+            <Text style={[styles.fieldLabel, { color: themeFieldLabel }]}>PIN Code</Text>
+            <View style={[styles.inputRow, { backgroundColor: themeInputBg, borderColor: themeInputBorder }]}>
               <Text style={styles.inputEmoji}>🔒</Text>
               <Input
                 value={pinCode}
                 onChangeText={setPinCode}
                 placeholder="Buat PIN 4-6 digit"
+                placeholderTextColor={isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF'}
                 secureTextEntry
                 keyboardType="numeric"
                 maxLength={6}
-                style={styles.inputFlat}
+                style={[styles.inputFlat, { color: themeText }]}
               />
             </View>
           </View>
 
           {/* Confirm PIN */}
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>Konfirmasi PIN</Text>
+            <Text style={[styles.fieldLabel, { color: themeFieldLabel }]}>Konfirmasi PIN</Text>
             <View style={[
               styles.inputRow,
+              { backgroundColor: themeInputBg, borderColor: themeInputBorder },
               confirmPin.length > 0 && pinCode !== confirmPin && styles.inputRowError,
               confirmPin.length > 0 && pinCode === confirmPin && styles.inputRowSuccess,
             ]}>
@@ -243,10 +261,11 @@ export const RegisterScreen = ({ onBack, onSuccess }: RegisterScreenProps) => {
                 value={confirmPin}
                 onChangeText={setConfirmPin}
                 placeholder="Ulangi PIN Anda"
+                placeholderTextColor={isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF'}
                 secureTextEntry
                 keyboardType="numeric"
                 maxLength={6}
-                style={styles.inputFlat}
+                style={[styles.inputFlat, { color: themeText }]}
               />
             </View>
           </View>
@@ -276,7 +295,7 @@ export const RegisterScreen = ({ onBack, onSuccess }: RegisterScreenProps) => {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>v1.2.0 • Kilatz by Nustra Group</Text>
+          <Text style={[styles.footerText, { color: themeSubText }]}>v1.2.0 • Kilatz by Nustra Group</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

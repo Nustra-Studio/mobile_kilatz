@@ -12,6 +12,7 @@
 
 import { api } from '../utils/api';
 import { getDB } from '../database/db';
+import { NotificationController } from './NotificationController';
 
 // ── Interval handle untuk background sync ────────────────────────────────────
 let _backgroundIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -120,6 +121,11 @@ export const SyncController = {
             } catch (err: any) {
                 failed++;
                 console.warn(`[Sync] ⚠️ Failed to push ${order.invoice_number}: ${err.message}`);
+                NotificationController.add({
+                    title: 'Sync Gagal',
+                    message: `Gagal mengirim transaksi ${order.invoice_number}. Silakan cek koneksi.`,
+                    type: 'SYNC'
+                });
             }
         }
 
@@ -190,8 +196,13 @@ export const SyncController = {
                 this.pullProducts(),
                 this.pullCategories(),
             ]);
-        } catch (err) {
+        } catch (err: any) {
             console.warn('[Sync] On-login pull failed (offline?):', err);
+            NotificationController.add({
+                title: 'Koneksi Server Gagal',
+                message: 'Gagal mengambil data produk terbaru dari server.',
+                type: 'SYNC'
+            });
         }
         // Juga coba push pending yang mungkin tersisa dari sesi sebelumnya
         await this.pushPendingTransactions().catch(() => {});

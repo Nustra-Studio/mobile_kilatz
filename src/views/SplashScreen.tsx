@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { Dimensions, StyleSheet, View, useColorScheme as RNuseColorScheme } from 'react-native';
+import { useColorScheme } from 'nativewind';
 import Animated, {
   Easing,
   runOnJS,
@@ -19,6 +20,13 @@ interface SplashScreenProps {
 }
 
 export const SplashScreen = ({ onFinish }: SplashScreenProps) => {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  const themeBg = isDark ? '#0F0A00' : '#FFFFFF';
+  const themeText = isDark ? '#FFFFFF' : '#111827';
+  const themeSubText = isDark ? 'rgba(255,255,255,0.45)' : '#6B7280';
+  const themeBadgeBg = isDark ? 'rgba(254,180,0,0.12)' : 'rgba(254,180,0,0.08)';
   // Animation values
   const logoScale = useSharedValue(0.2);
   const logoOpacity = useSharedValue(0);
@@ -106,20 +114,20 @@ export const SplashScreen = ({ onFinish }: SplashScreenProps) => {
   }));
 
   return (
-    <Animated.View style={[styles.container, screenStyle]}>
+    <Animated.View style={[styles.container, { backgroundColor: themeBg }, screenStyle]}>
       {/* Background gradient layers */}
       <Animated.View style={[StyleSheet.absoluteFillObject, bgStyle]}>
-        <View style={styles.bgTop} />
-        <View style={styles.bgBottom} />
+        <View style={[styles.bgTop, { backgroundColor: isDark ? '#1A1000' : '#F3F4F6' }]} />
+        <View style={[styles.bgBottom, { backgroundColor: isDark ? '#080500' : '#FFFFFF' }]} />
       </Animated.View>
 
       {/* Decorative circles */}
-      <View style={[styles.circle, styles.circleTopRight]} />
-      <View style={[styles.circle, styles.circleBottomLeft]} />
-      <View style={[styles.circle, styles.circleCenter]} />
+      <View style={[styles.circle, styles.circleTopRight, { opacity: isDark ? 0.06 : 0.1 }]} />
+      <View style={[styles.circle, styles.circleBottomLeft, { opacity: isDark ? 0.05 : 0.08 }]} />
+      <View style={[styles.circle, styles.circleCenter, { opacity: isDark ? 0.04 : 0.06 }]} />
 
       {/* Shimmer overlay */}
-      <Animated.View style={[styles.shimmer, shimmerStyle]} />
+      <Animated.View style={[styles.shimmer, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' }, shimmerStyle]} />
 
       {/* Main content */}
       <View style={styles.content}>
@@ -201,12 +209,12 @@ export const SplashScreen = ({ onFinish }: SplashScreenProps) => {
         </Animated.View>
 
         {/* Brand name */}
-        <Animated.Text style={[styles.brandName, textStyle]}>
+        <Animated.Text style={[styles.brandName, { color: themeText, textShadowColor: isDark ? BRAND : 'transparent' }, textStyle]}>
           KILATZ
         </Animated.Text>
 
         {/* Tagline */}
-        <Animated.Text style={[styles.tagline, taglineStyle]}>
+        <Animated.Text style={[styles.tagline, { color: themeSubText }, taglineStyle]}>
           Sistem Kasir Profesional
         </Animated.Text>
 
@@ -220,9 +228,9 @@ export const SplashScreen = ({ onFinish }: SplashScreenProps) => {
 
       {/* Bottom badge */}
       <Animated.View style={[styles.bottomBadge, taglineStyle]}>
-        <View style={styles.badgePill}>
+        <View style={[styles.badgePill, { backgroundColor: themeBadgeBg, borderColor: isDark ? 'rgba(254,180,0,0.2)' : '#E5E7EB' }]}>
           <View style={styles.badgeDot} />
-          <Animated.Text style={styles.badgeText}>v1.2.0 • Nustra Group</Animated.Text>
+          <Animated.Text style={[styles.badgeText, { color: isDark ? 'rgba(255,255,255,0.5)' : '#4B5563' }]}>v1.2.0 • Nustra Group</Animated.Text>
         </View>
       </Animated.View>
     </Animated.View>
@@ -235,7 +243,6 @@ const DARK_BG = '#0F0A00';
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: DARK_BG,
     overflow: 'hidden',
   },
   bgTop: {
