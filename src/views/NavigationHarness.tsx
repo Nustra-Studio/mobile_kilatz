@@ -201,7 +201,27 @@ const NavigationHarnessContent = () => {
           return <RoomForm
             initialData={editingRoom === 'NEW' ? null : editingRoom}
             onCancel={() => setEditingRoom(null)}
-            onSave={async () => setEditingRoom(null)}
+            onSave={async (data) => {
+              try {
+                // Map UI fields to DB fields
+                const dbData = {
+                  name: data.name,
+                  hourly_rate: data.pricePerHour,
+                  capacity: data.capacity,
+                  status: data.status,
+                  tv_ip_address: (data as any).tv_ip_address,
+                };
+
+                if (editingRoom === 'NEW') {
+                  await RoomController.addRoom(dbData as any);
+                } else if (editingRoom && editingRoom.id) {
+                  await RoomController.updateRoom(editingRoom.id, dbData as any);
+                }
+                setEditingRoom(null);
+              } catch (e) {
+                console.error('Failed to save room', e);
+              }
+            }}
           />;
         }
         if (selectedRoom) {

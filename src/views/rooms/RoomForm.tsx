@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
-import { Input } from '../ui/Input';
-import { Button } from '../ui/Button';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { VipRoom } from '../../types';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
 
 interface RoomFormProps {
   initialData?: VipRoom | null;
@@ -16,14 +16,18 @@ export const RoomForm = ({ initialData, onSave, onCancel }: RoomFormProps) => {
   const [capacity, setCapacity] = useState('');
   const [pricePerHour, setPricePerHour] = useState('');
   const [status, setStatus] = useState<VipRoom['status']>('AVAILABLE');
+  // 1. Tambahkan state IP TV
+  const [tvIpAddress, setTvIpAddress] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (initialData) {
       setName(initialData.name);
-      setCapacity(initialData.capacity.toString());
-      setPricePerHour(initialData.pricePerHour.toString());
+      setCapacity(initialData.capacity?.toString() || '');
+      setPricePerHour(initialData.pricePerHour?.toString() || '');
       setStatus(initialData.status);
+      // Load tv_ip_address jika ada (cast ke any jika di type belum ada)
+      setTvIpAddress((initialData as any).tv_ip_address || '');
     }
   }, [initialData]);
 
@@ -36,7 +40,8 @@ export const RoomForm = ({ initialData, onSave, onCancel }: RoomFormProps) => {
         capacity: parseInt(capacity) || 0,
         pricePerHour: parseFloat(pricePerHour) || 0,
         status,
-      });
+        tv_ip_address: tvIpAddress, // 2. Sertakan IP TV ke payload
+      } as any);
     } catch (e) {
       console.error(e);
     } finally {
@@ -85,6 +90,15 @@ export const RoomForm = ({ initialData, onSave, onCancel }: RoomFormProps) => {
         onChangeText={setPricePerHour}
         keyboardType="numeric"
         placeholder="e.g. 50000"
+      />
+
+      {/* 3. Tambahkan Input form TV IP Address */}
+      <Input
+        label="TV IP Address (Opsional)"
+        value={tvIpAddress}
+        onChangeText={setTvIpAddress}
+        placeholder="e.g. 192.168.1.15"
+        keyboardType="numeric"
       />
 
       <Text className="mb-2 text-sm font-semibold text-gray-700">Initial Status</Text>
